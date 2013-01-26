@@ -49,21 +49,76 @@ int main(int argc, char * argv[]) {
 	fprintf(stderr, "First argument must be k or u\n");
 	exit(-1);
     }
-
+    fprintf(stderr, "before socket");
     /* create socket */
-
+    sock=minet_socket(SOCK_STREAM);
     // Do DNS lookup
     /* Hint: use gethostbyname() */
 
+    fprintf(stderr, "a");
+    site = gethostbyname(server_name);
+    if (site == NULL) {
+    minet_close( sock);
+    minet_deinit();
+    fprintf(stderr, "gethostbyname");
+    return -1;
+    }
+    memset (& sa, 0, sizeof( sa));
+    sa.sin_family = AF_INET;
+    sa.sin_port = htons( server_port);
+    sa.sin_addr.s_addr = *( unsigned long *) site-> h_addr_list[
+    0];
+    if (minet_connect(sock, &sa) != 0) {
+    minet_close(sock);
+    fprintf(stderr, "connect");
+    return -1;
+    }
+    fprintf(stderr, "b");
     /* set address */
-
     /* connect socket */
     
     /* send request */
-
     /* wait till socket can be read */
     /* Hint: use select(), and ignore timeout for now. */
+    int fdmax = 0;
+    fdmax = (fdmax>sock)? fdmax: sock;
+    fprintf(stderr, "c");
+    for(;;) {
+        FD_SET(0, &set);
+        FD_SET(sock, &set);
+    fprintf(stderr, "d");
+    if (minet_select(fdmax+1, &set, NULL, NULL, NULL) == -1) {
+            fprintf(stderr, "select");
+            return -1;
+        }
     
+    if(FD_ISSET(0, &set)) 
+    { 
+            fprintf(stderr, "e");
+            /* send the message line to the server */
+           int n = write_n_bytes(sock, server_path, strlen(server_path));
+            if (n < 0) { 
+              fprintf(stderr, "ERROR writing to socket");
+          break;
+        }
+    }
+    if(FD_ISSET(sock, &set))
+    {
+        fprintf(stderr, "f");
+            bzero(buf, BUFSIZE);
+           int n = minet_read(sock, buf, BUFSIZE);
+            if (n <0) { 
+              fprintf(stderr, "ERROR reading from socket");
+            break;
+        }
+        if(n==0) {
+              fprintf(stderr, "server connection closed.");
+        }
+
+            fprintf(stderr, ">> %s", buf);
+            break;
+    }   
+    }   
     /* first read loop -- read headers */
     
     /* examine return code */   
@@ -76,7 +131,17 @@ int main(int argc, char * argv[]) {
     /* second read loop -- print out the rest of the response */
     
     /*close socket and deinitialize */
-
+    fprintf(stderr, "g");
+    if(minet_close(sock)!=0)
+    {
+        fprintf(stderr, "close");
+        ok=false;
+    }
+    if(minet_deinit()!=0)
+    {
+        fprintf(stderr, "deinit");
+        ok=false;
+    }
 
     if (ok) {
 	return 0;
