@@ -83,6 +83,7 @@ int main(int argc, char * argv[]) {
     int fdmax = 0;
     fdmax = (fdmax>sock)? fdmax: sock;
     fprintf(stderr, "c");
+	int n=0;
     for(;;) {
         FD_SET(0, &set);
         FD_SET(sock, &set);
@@ -91,16 +92,18 @@ int main(int argc, char * argv[]) {
             fprintf(stderr, "select");
             return -1;
         }
-    
+     
     if(FD_ISSET(0, &set)) 
     { 
+
             fprintf(stderr, "e");
             /* send the message line to the server */
-           int n = write_n_bytes(sock, server_path, strlen(server_path));
+           n = write_n_bytes(sock, server_path, strlen(server_path));
             if (n < 0) { 
               fprintf(stderr, "ERROR writing to socket");
           break;
         }
+	
     }
     if(FD_ISSET(sock, &set))
     {

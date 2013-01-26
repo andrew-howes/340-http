@@ -46,7 +46,7 @@ int main(int argc,char *argv[])
     rc = handle_connection(sock2);
   }
 }
-REPLACE
+//REPLACE
 int handle_connection(int sock2)
 {
   char filename[FILENAMESIZE+1];
