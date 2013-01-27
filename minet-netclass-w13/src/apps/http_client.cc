@@ -91,45 +91,51 @@ int main(int argc, char * argv[]) {
     }
     /* wait till socket can be read */
     /* Hint: use select(), and ignore timeout for now. */
-    for(;;) {
-        FD_SET(0, &set);
-        FD_SET(sock, &set);
-        fprintf(stderr, "d");
-        if (minet_select(fdmax+1, &set, NULL, NULL, NULL) == -1) {
-            fprintf(stderr, "select");
-            return -1;
-        }
-        //moved sending message out of the loop for now
-        if(FD_ISSET(sock, &set))
-        {
-            fprintf(stderr, "f");
-            bzero(buf, BUFSIZE);
-            int n = minet_read(sock, buf, BUFSIZE);
-            if (n <0) {
-                fprintf(stderr, "ERROR reading from socket");
-                break;
-            }
-            if(n==0) {
-                fprintf(stderr, "server connection closed.");
-            }
-            
-            fprintf(stderr, ">> %s", buf);
-            break;
-        }
+    FD_SET(0, &set);
+    FD_SET(sock, &set);
+    fprintf(stderr, "d");
+    if (minet_select(fdmax+1, &set, NULL, NULL, NULL) == -1) {
+        fprintf(stderr, "select");
+        return -1;
     }
+    //moved sending message out of the loop for now
+
     /* first read loop -- read headers */
+    fprintf(stderr, "f");
+    bzero(buf, BUFSIZE);
+    while((n = minet_read(sock, buf, BUFSIZE))>0){
+	buf[n]='\0';
+	//while there is response left to read
+	//read until the end of the headers
+	    	
+	//store buf in a variable to save the header
+	fprintf(wheretoprint,"%s",buf);	
+            //break;
+    }
     
     /* examine return code */   
+    
     //Skip "HTTP/1.0"
     //remove the '\0'
     // Normal reply has return code 200
 
     /* print first part of response */
 
-    /* second read loop -- print out the rest of the response */
-    
+    //sprintf(wheretoprint,/*response*/);
+
+    /* second read loop -- print out the rest of the response 
+    while((n = minet_read(sock, buf, BUFSIZE))>0){
+	buf[n]='\0';
+	//while there is response left to read
+	//read until the end of the headers
+	    	
+	//store buf in a variable to save the header
+	fprintf(wheretoprint,"%s",buf);	
+            //break;
+    }
+	*/
     /*close socket and deinitialize */
-    fprintf(stderr, "g");
+    //fprintf(stderr, "g");
     if(minet_close(sock)!=0)
     {
         fprintf(stderr, "close");
