@@ -79,17 +79,15 @@ int main(int argc, char * argv[]) {
     int fdmax = 0;
     fdmax = (fdmax>sock)? fdmax: sock;
     fprintf(stderr, "c");
-	int n=0;
+    int n=0;
     //assemble request
-    req = char[BUFSIZE];
-    strcpy(req,"GET ");
-    strcat(req,server_path);
-    strcat(req," HTTP/1.0\r\n");
+    req = buf;
+    sprintf(req,"GET %s HTTP/1.0\r\n\r\n",server_path);
     /* send request */
-    n = write_n_bytes(sock, req, strlen(req));
+    n = write_n_bytes(sock, req, strlen(buf));
     if (n < 0) {
         fprintf(stderr, "ERROR writing to socket");
-        break;
+        return -1;
     }
     /* wait till socket can be read */
     /* Hint: use select(), and ignore timeout for now. */
