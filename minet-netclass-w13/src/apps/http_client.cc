@@ -1,6 +1,7 @@
 #include "minet_socket.h"
 #include <stdlib.h>
 #include <ctype.h>
+#include <string.h>
 
 #define BUFSIZE 1024
 
@@ -30,8 +31,8 @@ int main(int argc, char * argv[]) {
 
     /*parse args */
     if (argc != 5) {
-	fprintf(stderr, "usage: http_client k|u server port path\n");
-	exit(-1);
+        fprintf(stderr, "usage: http_client k|u server port path\n");
+        exit(-1);
     }
 
     server_name = argv[2];
@@ -42,86 +43,82 @@ int main(int argc, char * argv[]) {
 
     /* initialize minet */
     if (toupper(*(argv[1])) == 'K') { 
-	minet_init(MINET_KERNEL);
-    } else if (toupper(*(argv[1])) == 'U') { 
-	minet_init(MINET_USER);
+        minet_init(MINET_KERNEL);
+    } else if (toupper(*(argv[1])) == 'U') {
+        minet_init(MINET_USER);
     } else {
-	fprintf(stderr, "First argument must be k or u\n");
-	exit(-1);
+        fprintf(stderr, "First argument must be k or u\n");
+        exit(-1);
     }
     fprintf(stderr, "before socket");
     /* create socket */
     sock=minet_socket(SOCK_STREAM);
     // Do DNS lookup
     /* Hint: use gethostbyname() */
-
-    fprintf(stderr, "a");
+    //fprintf(stderr, "a");
     site = gethostbyname(server_name);
     if (site == NULL) {
-    minet_close( sock);
-    minet_deinit();
-    fprintf(stderr, "gethostbyname");
-    return -1;
+        minet_close( sock);
+        minet_deinit();
+        fprintf(stderr, "gethostbyname");
+        return -1;
     }
+    /* set address */
     memset (& sa, 0, sizeof( sa));
     sa.sin_family = AF_INET;
-    sa.sin_port = htons( server_port);
-    sa.sin_addr.s_addr = *( unsigned long *) site-> h_addr_list[
-    0];
+    sa.sin_port = htons(server_port);
+    sa.sin_addr.s_addr = *( unsigned long *) site-> h_addr_list[0];
+    /* connect socket */
     if (minet_connect(sock, &sa) != 0) {
-    minet_close(sock);
-    fprintf(stderr, "connect");
-    return -1;
+        minet_close(sock);
+        fprintf(stderr, "connect");
+        return -1;
     }
     fprintf(stderr, "b");
-    /* set address */
-    /* connect socket */
     
-    /* send request */
-    /* wait till socket can be read */
-    /* Hint: use select(), and ignore timeout for now. */
     int fdmax = 0;
     fdmax = (fdmax>sock)? fdmax: sock;
     fprintf(stderr, "c");
 	int n=0;
+    //assemble request
+    req = char[BUFSIZE];
+    strcpy(req,"GET ");
+    strcat(req,server_path);
+    strcat(req," HTTP/1.0\r\n");
+    /* send request */
+    n = write_n_bytes(sock, req, strlen(req));
+    if (n < 0) {
+        fprintf(stderr, "ERROR writing to socket");
+        break;
+    }
+    /* wait till socket can be read */
+    /* Hint: use select(), and ignore timeout for now. */
     for(;;) {
         FD_SET(0, &set);
         FD_SET(sock, &set);
-    fprintf(stderr, "d");
-    if (minet_select(fdmax+1, &set, NULL, NULL, NULL) == -1) {
+        fprintf(stderr, "d");
+        if (minet_select(fdmax+1, &set, NULL, NULL, NULL) == -1) {
             fprintf(stderr, "select");
             return -1;
         }
-     
-    if(FD_ISSET(0, &set)) 
-    { 
-
-            fprintf(stderr, "e");
-            /* send the message line to the server */
-           n = write_n_bytes(sock, server_path, strlen(server_path));
-            if (n < 0) { 
-              fprintf(stderr, "ERROR writing to socket");
-          break;
-        }
-	
-    }
-    if(FD_ISSET(sock, &set))
-    {
-        fprintf(stderr, "f");
+        //moved sending message out of the loop for now
+        if(FD_ISSET(sock, &set))
+        {
+            fprintf(stderr, "f");
             bzero(buf, BUFSIZE);
-           int n = minet_read(sock, buf, BUFSIZE);
-            if (n <0) { 
-              fprintf(stderr, "ERROR reading from socket");
-            break;
-        }
-        if(n==0) {
-              fprintf(stderr, "server connection closed.");
-        }
-
+            int n = minet_read(sock, buf, BUFSIZE);
+            if (n <0) {
+                fprintf(stderr, "ERROR reading from socket");
+                break;
+            }
+            if(n==0) {
+                fprintf(stderr, "server connection closed.");
+            }
+            
             fprintf(stderr, ">> %s", buf);
             break;
-    }   
-    }   
+        }
+    }
     /* first read loop -- read headers */
     
     /* examine return code */   
