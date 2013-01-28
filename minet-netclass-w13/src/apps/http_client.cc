@@ -130,6 +130,7 @@ int main(int argc, char * argv[]) {
 	ok = false;
 	wheretoprint=stderr;
 	fprintf(wheretoprint,headers.c_str());
+	fprintf(wheretoprint,"\r\n\r\n%s",response.c_str());
 	}
     else{
 	ok = true;
