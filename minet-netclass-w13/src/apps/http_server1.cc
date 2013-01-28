@@ -3,9 +3,12 @@
 #include <ctype.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <string>
 
 #define BUFSIZE 1024
 #define FILENAMESIZE 100
+
+using namespace std;
 
 int handle_connection(int);
 int writenbytes(int,char *,int);
@@ -97,27 +100,72 @@ int handle_connection(int sock2)
                          "<h2>404 FILE NOT FOUND</h2>\n"
                          "</body></html>\n";
   bool ok=true;
+  FILE *readfile;
+  fprintf(stderr,"working");
 
+  string header="";
+  size_t index;
+  int n;
   /* first read loop -- get request and headers*/
+  //datalen = readnbytes(sock2,buf,BUFSIZE);
+  while((n = minet_read(sock2, buf, BUFSIZE))>0){
+	buf[n]='\0';
+	header+=buf;
+	if((index=header.find("\r\n\r\n"))!=string::npos)
+	{
+	//while there is response left to read
+	//read until the end of the headers (two newlines in a row)
+	    header = header.substr(0,index);
+	//store buf in a variable to save the header
+	//fprintf(wheretoprint,"%s",buf);	
+            break;
+	}
+    }
 
+  if(n==0)
+  {
+    fprintf(stderr,"error reading");
+  }
+  buf[datalen]='\0';
+  //fprintf(stderr,"got input");
   /* parse request to get file name */
   /* Assumption: this is a GET request and filename contains no spaces*/
-
+  sscanf(header.c_str(),"GET %s HTTP/1.0",filename);
     /* try opening the file */
-
+    rc = stat(filename, &filestat);
+  //fprintf(stderr,"got filename");
+  if(rc<0){
+	ok=false;
+  }else{
+	ok = true;
+  }
   /* send response */
   if (ok)
   {
     /* send headers */
-
+	sprintf(ok_response,ok_response_f,filestat.st_size);
+	writenbytes(sock2,ok_response,BUFSIZE);
     /* send file */
+    readfile=fopen(filename,"r");
+	if(readfile==NULL){
+		fprintf(stderr,"error opening file");
+	}else{
+		while(!feof(readfile)){
+			bzero(buf,BUFSIZE);
+			if(fgets(buf,BUFSIZE,readfile)!=NULL)
+		 	    writenbytes(sock2,buf,BUFSIZE);
+		}
+		fclose(readfile);
+	}
+
   }
   else // send error response
   {
+	writenbytes(sock2,notok_response,BUFSIZE);
   }
 
   /* close socket and free space */
-
+  minet_close(sock2);
   if (ok)
     return 0;
   else
