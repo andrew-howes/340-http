@@ -32,16 +32,45 @@ int main(int argc,char *argv[])
   }
 
   /* initialize and make socket */
- 
+   /* initialize minet */
+    if (toupper(*(argv[1])) == 'K') { 
+        minet_init(MINET_KERNEL);
+    } else if (toupper(*(argv[1])) == 'U') {
+        minet_init(MINET_USER);
+    } else {
+        fprintf(stderr, "First argument must be k or u\n");
+        exit(-1);
+    }
+  // make socket
+
+  sock = minet_socket(SOCK_STREAM);
+  if(sock==-1)
+  {
+	fprintf(stderr, "error creating socket");
+  }
+  
   /* set server address*/
-
+  memset(&sa,0,sizeof(sa));
+  sa.sin_port=htons(server_port);
+  sa.sin_addr.s_addr=htonl(INADDR_ANY);
+  sa.sin_family=AF_INET;
   /* bind listening socket */
-
+  rc = minet_bind(sock,&sa);
+  if(rc<0)
+  {
+       fprintf(stderr,"error binding socket");
+  }
   /* start listening */
+  rc = minet_listen(sock,5);  
+  if(rc<0)
+  {
+	fprintf(stderr,"error listening");
+  }
 
   /* connection handling loop */
   while(1)
   {
+    sock2 = minet_accept(sock,&sa2);
     /* handle connections */
     rc = handle_connection(sock2);
   }
