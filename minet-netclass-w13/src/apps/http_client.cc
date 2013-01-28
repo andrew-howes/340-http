@@ -1,9 +1,12 @@
 #include "minet_socket.h"
 #include <stdlib.h>
 #include <ctype.h>
-#include <string.h>
+#include <string>
+#include <iostream>
 
 #define BUFSIZE 1024
+
+using namespace std;
 
 int write_n_bytes(int fd, char * buf, int count);
 
@@ -50,7 +53,7 @@ int main(int argc, char * argv[]) {
         fprintf(stderr, "First argument must be k or u\n");
         exit(-1);
     }
-    fprintf(stderr, "before socket");
+    //fprintf(stderr, "before socket");
     /* create socket */
     sock=minet_socket(SOCK_STREAM);
     // Do DNS lookup
@@ -94,7 +97,7 @@ int main(int argc, char * argv[]) {
     FD_SET(0, &set);
     FD_SET(sock, &set);
     fprintf(stderr, "d");
-    if (minet_select(fdmax+1, &set, NULL, NULL, NULL) == -1) {
+    if ((rc=minet_select(fdmax+1, &set, NULL, NULL, NULL)) == -1) {
         fprintf(stderr, "select");
         return -1;
     }
@@ -103,37 +106,56 @@ int main(int argc, char * argv[]) {
     /* first read loop -- read headers */
     fprintf(stderr, "f");
     bzero(buf, BUFSIZE);
+    string headers="";
+    string response="";
+    size_t index;
     while((n = minet_read(sock, buf, BUFSIZE))>0){
 	buf[n]='\0';
+	headers+=buf;
+	if((index=headers.find("\r\n\r\n"))!=string::npos)
+	{
 	//while there is response left to read
-	//read until the end of the headers
-	    	
+	//read until the end of the headers (two newlines in a row)
+	    response = headers.substr(index+4);
+	    headers = headers.substr(0,index);
 	//store buf in a variable to save the header
-	fprintf(wheretoprint,"%s",buf);	
-            //break;
+	//fprintf(wheretoprint,"%s",buf);	
+            break;
+	}
     }
     
     /* examine return code */   
-    
+    if((index=headers.find("200 OK"))==string::npos){
+	//not ok
+	ok = false;
+	wheretoprint=stderr;
+	fprintf(wheretoprint,headers.c_str());
+	}
+    else{
+	ok = true;
+	fprintf(wheretoprint,headers.c_str());
+	fprintf(wheretoprint,"\r\n\r\n%s",response.c_str());
+	}
     //Skip "HTTP/1.0"
     //remove the '\0'
     // Normal reply has return code 200
 
     /* print first part of response */
 
-    //sprintf(wheretoprint,/*response*/);
-
-    /* second read loop -- print out the rest of the response 
+    /* second read loop -- print out the rest of the response */
     while((n = minet_read(sock, buf, BUFSIZE))>0){
 	buf[n]='\0';
 	//while there is response left to read
 	//read until the end of the headers
-	    	
+	if(ok){
 	//store buf in a variable to save the header
-	fprintf(wheretoprint,"%s",buf);	
+		fprintf(wheretoprint,"%s",buf);	
             //break;
+        }else{
+		fprintf(stderr,"%s",buf);
+	}
     }
-	*/
+
     /*close socket and deinitialize */
     //fprintf(stderr, "g");
     if(minet_close(sock)!=0)
